@@ -113,6 +113,8 @@ UICollectionViewDelegateFlowLayout, UICollectionViewDataSource, UIGestureRecogni
             messagesCollectionView.scrollIndicatorInsets.bottom = messageCollectionViewBottomInset
         }
     }
+  
+    internal var isTyping = false
 
     // MARK: - View Life Cycle
 
@@ -160,7 +162,7 @@ UICollectionViewDelegateFlowLayout, UICollectionViewDataSource, UIGestureRecogni
 
     open override func viewSafeAreaInsetsDidChange() {
         super.viewSafeAreaInsetsDidChange()
-        messageCollectionViewBottomInset = requiredInitialScrollViewBottomInset()
+//        messageCollectionViewBottomInset = requiredInitialScrollViewBottomInset()
     }
 
     // MARK: - Initializers

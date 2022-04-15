@@ -31,8 +31,15 @@ internal extension MessagesViewController {
     // MARK: - Register / Unregister Observers
 
     func addKeyboardObservers() {
-        NotificationCenter.default.addObserver(self, selector: #selector(MessagesViewController.handleKeyboardDidChangeState(_:)), name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(MessagesViewController.handleTextViewDidBeginEditing(_:)), name: UITextView.textDidBeginEditingNotification, object: nil)
+      NotificationCenter.default.addObserver(self,
+                                                     selector: #selector(inputTextViewDidBeginEditing),
+                                                     name: UITextView.textDidBeginEditingNotification, object: messageInputBar.inputTextView)
+              NotificationCenter.default.addObserver(self,
+                                                     selector: #selector(inputTextViewDidEndEditing),
+                                                     name: UITextView.textDidEndEditingNotification, object: messageInputBar.inputTextView)
+              NotificationCenter.default.addObserver(self,
+                                                     selector: #selector(keyboardFrameChanged),
+                                                     name: UIResponder.keyboardDidChangeFrameNotification, object: nil)
     }
 
     func removeKeyboardObservers() {
@@ -41,24 +48,32 @@ internal extension MessagesViewController {
         NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
     }
 
+  @objc func inputTextViewDidBeginEditing() {
+          isTyping = true
+      }
+
+  @objc func inputTextViewDidEndEditing() {
+          isTyping = false
+      }
+
     // MARK: - Notification Handlers
 
-    @objc
-    private func handleTextViewDidBeginEditing(_ notification: Notification) {
-        if scrollsToLastItemOnKeyboardBeginsEditing || scrollsToLastItemOnKeyboardBeginsEditing {
-            guard
-                let inputTextView = notification.object as? InputTextView,
-                inputTextView === messageInputBar.inputTextView
-            else {
-                return
-            }
-            if scrollsToLastItemOnKeyboardBeginsEditing {
-                messagesCollectionView.scrollToLastItem()
-            } else {
-                messagesCollectionView.scrollToLastItem(animated: true)
-            }
-        }
+  @objc func keyboardFrameChanged(_ notification: Notification) {
+    if let keyboardFrame = notification.userInfo?["UIKeyboardFrameEndUserInfoKey"] as? NSValue {
+      if isTyping {
+        messagesCollectionView.contentInset.bottom = keyboardFrame.cgRectValue.height
+      } else {
+        messagesCollectionView.contentInset.bottom = messageInputBar.frame.height
+      }
+      guard isLastSectionVisible() else { return }
+      messagesCollectionView.scrollToLastItem(at: .bottom, animated: true)
     }
+  }
+
+  func isLastSectionVisible() -> Bool {
+    // TODO - This should be a real value based on `MessageViewController` subclass data
+    return true
+  }
 
     @objc
     private func handleKeyboardDidChangeState(_ notification: Notification) {
@@ -101,7 +116,7 @@ internal extension MessagesViewController {
         UIView.performWithoutAnimation {
             messageCollectionViewBottomInset = newBottomInset
         }
-        
+
         if maintainPositionOnKeyboardFrameChanged && differenceOfBottomInset != 0 {
             let contentOffset = CGPoint(x: messagesCollectionView.contentOffset.x, y: messagesCollectionView.contentOffset.y + differenceOfBottomInset)
             // Changing contentOffset to bigger number than the contentSize will result in a jump of content
